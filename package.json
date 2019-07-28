@@ -1,0 +1,17 @@
+{
+  "name": "xlsx-to-oli",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "command-line-args": "^5.1.1",
+    "express": "^4.17.1",
+    "multer": "^1.4.2",
+    "xlsx": "^0.14.4"
+  }
+}
