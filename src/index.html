@@ -11,7 +11,9 @@
 </head>
 
 <script>
-
+  function isFirefox() {
+    return navigator.userAgent.indexOf("Firefox") > 0;
+  }
 
   function doSubmit() {
 
@@ -37,9 +39,10 @@
       const blob = new Blob([text], { type: 'text/xml' });
       const url = URL.createObjectURL(blob);
 
+
       const downloadLink = document.createElement("a");
       downloadLink.href = url;
-      downloadLink.download = idValue;
+      downloadLink.download = isFirefox() ? idValue + '.xml' : idValue;
       document.body.appendChild(downloadLink);
       downloadLink.click();
       document.body.removeChild(downloadLink);
@@ -68,6 +71,10 @@
       <li class="nav-item">
         <a class="nav-link" id="source-tab" data-toggle="tab" href="#source" role="tab" aria-controls="source"
           aria-selected="false">Source Code</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" id="changes-tab" data-toggle="tab" href="#changes" role="tab" aria-controls="changes"
+          aria-selected="false">Change Log</a>
       </li>
     </ul>
 
@@ -215,11 +222,34 @@
       <div class="tab-pane" id="source" role="tabpanel" aria-labelledby="source-tab">
         <div style="margin: 20px">
           <p>
-            The source code for this utility is available on GitHub at:
+            The source code for this utility is available on GitHub at <a
+              href="https://github.com/Simon-Initiative/xlsx-to-oli">https://github.com/Simon-Initiative/xlsx-to_oli</a>
           </p>
-          <a href="https://github.com/Simon-Initiative/xlsx-to-oli">https://github.com/Simon-Initiative/xlsx-to_oli</a>
+
+          <p>
+            To support a wider variety of workflows, the source provides the ability to run <code>xlsx-to-oli</code> as
+            a command line application.
+          </p>
+
         </div>
       </div>
+      <div class="tab-pane" id="changes" role="tabpanel" aria-labelledby="changes-tab">
+        <div style="margin: 20px">
+          <table class="table table-bordered table-sm">
+            <tbody>
+              <tr>
+                <th>Version</td>
+                <th>Changes</th>
+              </tr>
+              <tr>
+                <td>0.0.1</td>
+                <td>Initial version</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
     </div>
 
 
