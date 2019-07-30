@@ -212,10 +212,6 @@ function processImage(context, c) {
   }
 }
 
-function tl(arr) {
-  return arr[arr.length - 1];
-}
-
 function processListItem(context, c) {
   const listId = c.paragraph.bullet.listId;
   const level = c.paragraph.bullet.nestingLevel === undefined
