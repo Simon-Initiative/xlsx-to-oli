@@ -1,5 +1,25 @@
 var guid = require('./guid').guid;
 
+function workbook(id, title, objectives, body, bib) {
+  return `<?xml version="1.0" encoding="UTF-8"?>
+  <!DOCTYPE workbook_page PUBLIC "-//Carnegie Mellon University//DTD Workbook Page MathML 3.8//EN" "http://oli.web.cmu.edu/dtd/oli_workbook_page_mathml_3_8.dtd">
+  <workbook_page xmlns:bib="http://bibtexml.sf.net/" 
+    xmlns:cmd="http://oli.web.cmu.edu/content/metadata/2.1/" 
+    xmlns:m="http://www.w3.org/1998/Math/MathML" 
+    xmlns:pref="http://oli.web.cmu.edu/preferences/" 
+    xmlns:theme="http://oli.web.cmu.edu/presentation/" 
+    xmlns:wb="http://oli.web.cmu.edu/activity/workbook/" id="${id}">
+    <head>
+      <title>${title}</title>
+      ${objectives}
+    </head>
+    <body>
+      ${body}
+    </body>
+    ${bib}
+  </workbook_page>`
+}
+
 function summative(id, title, components) {
   const content = components
     .map(q => {
@@ -158,5 +178,6 @@ function formativeQuestion(mc) {
 module.exports = {
   pool,
   summative,
-  formative
+  formative,
+  workbook
 }
