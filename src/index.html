@@ -106,7 +106,7 @@
               <label for="file">Question File</label>
               <input type="file" class="form-control" id="file" aria-describedby="fileHelp" name="xlsx"
                 placeholder="XLSX File">
-              <small id="fileHelp" class="form-text text-muted">The .xlsx file containing questions.</small>
+              <small id="fileHelp" class="form-text text-muted">The .xlsx file containing the resource content.</small>
             </div>
 
             <button type="button" class="btn btn-primary" onclick="doSubmit()">Submit</button>
@@ -132,13 +132,8 @@
             </li>
             <li>
               Each sheet in the workbook is expected to contain the definition of
-              one question.
+              either a question or a pool reference.
             </li>
-            <li>
-              Beyond the contents of the workbook, the user needs to specify title,
-              id and type of the resource that is to be created.
-            </li>
-
 
           </ul>
 
@@ -150,62 +145,62 @@
             <tbody>
               <tr>
                 <td>Question ID</td>
-                <td>my-question-1</td>
+                <td><i>my-question-1</i></td>
                 <td></td>
                 <td></td>
               </tr>
               <tr>
                 <td>Question Type</td>
-                <td>MCQ</td>
+                <td><i>MCQ</i></td>
                 <td></td>
                 <td></td>
               </tr>
               <tr>
                 <td>Question Text</td>
-                <td>Which of the following is an animal?</td>
+                <td><i>Which of the following is an animal?</i></td>
                 <td></td>
                 <td></td>
               </tr>
               <tr>
                 <td>Question Hint</td>
-                <td>Which of these could bite you?</td>
+                <td><i>Which of these could bite you?</i></td>
                 <td></td>
                 <td></td>
               </tr>
               <tr>
                 <td>Skill ID</td>
-                <td>animal-identification</td>
+                <td><i>animal-identification</i></td>
                 <td></td>
                 <td></td>
               </tr>
               <tr>
                 <td>Choice 1</td>
-                <td>Table</td>
+                <td><i>Table</i></td>
                 <td>Feedback</td>
-                <td>Incorrect</td>
+                <td><i>Incorrect</i></td>
               </tr>
               <tr>
                 <td>Choice 2</td>
-                <td>Dog</td>
+                <td><i>Dog</td>
                 <td>Feedback</td>
-                <td>Correct</td>
+                <td><i>Correct</i></td>
               </tr>
               <tr>
                 <td>Choice 3</td>
-                <td>Shoe</td>
+                <td><i>Shoe</td>
                 <td>Feedback</td>
-                <td>Incorrect</td>
+                <td><i>Incorrect</i></td>
               </tr>
               <tr>
                 <td>Choice 4</td>
-                <td>Idea</td>
+                <td><i>Idea</i></td>
                 <td>Feedback</td>
-                <td>Incorrect</td>
+                <td><i>Incorrect</i></td>
               </tr>
             </tbody>
           </table>
 
-          <h4>Notes</h4>
+          <h5>Notes</h5>
 
           <ul>
             <li><code>MCQ</code> is currently the only supported question type</li>
@@ -215,6 +210,45 @@
             <li>There must be exactly one choice marked <code>Correct</code></li>
             <li>Feeback must be either <code>Correct</code> or <code>Incorrect</code></li>
             <li>Assessment, question and skill IDs cannot contain spaces</li>
+            <li>The utility stops processsing a sheet at the first blank row that it encounters</li>
+          </ul>
+
+          <h4>Pool reference sheet format</h4>
+
+          <p>The following example illustrates the expected format of a pool reference:</p>
+
+          <table class="table table-bordered table-sm">
+            <tbody>
+              <tr>
+                <td>Pool ID</td>
+                <td><i>my-pool-1</i></td>
+              </tr>
+              <tr>
+                <td>Count</td>
+                <td><i>3</i></td>
+              </tr>
+              <tr>
+                <td>Strategy</td>
+                <td><i>random</i></td>
+              </tr>
+              <tr>
+                <td>Exhaustion</td>
+                <td><i>reuse</i></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h5>Notes</h5>
+
+          <ul>
+            <li>Only the <code>Pool ID</code> field is required</li>
+            <li>The possible values for <code>Count</code> is a positive integer or the value <code>*</code> which
+              represents to select all questions from the pool. The <code>*</code> value is the default value.</code>
+            </li>
+            <li>The possible values for <code>Strategy</code> are <code>random</code>, <code>random_with_replace</code>
+              or <code>ordered</code>. The default value is <code>random</code>.</li>
+            <li>The possible values for <code>Exhaustion</code> are <code>reuse</code>, <code>skip</code>,
+              <code>fail</code>. The default is <code>reuse</code>.</li>
             <li>The utility stops processsing a sheet at the first blank row that it encounters</li>
           </ul>
         </div>
@@ -244,6 +278,10 @@
               <tr>
                 <td>0.0.1</td>
                 <td>Initial version</td>
+              </tr>
+              <tr>
+                <td>0.0.2</td>
+                <td>Added pool reference support</td>
               </tr>
             </tbody>
           </table>

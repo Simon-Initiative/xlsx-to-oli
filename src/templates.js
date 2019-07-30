@@ -1,8 +1,13 @@
 var guid = require('./guid').guid;
 
-function summative(id, title, questions) {
-  const content = questions
-    .map(q => summativeQuestion(q))
+function summative(id, title, components) {
+  const content = components
+    .map(q => {
+      if (q.type === 'pool') {
+        return selection(q);
+      }
+      return summativeQuestion(q);
+    })
     .reduce((p, c) => p + c, '');
 
   return `<?xml version="1.0" encoding="UTF-8"?>
@@ -11,20 +16,27 @@ function summative(id, title, questions) {
     <title>${title}</title>${content}</assessment>`
 }
 
-function pool(id, title, questions) {
-  const content = questions
+function pool(id, title, components) {
+  const content = components
     .map(q => summativeQuestion(q))
     .reduce((p, c) => p + c, '');
+
   return `<?xml version="1.0" encoding="UTF-8"?>
   <!DOCTYPE pool PUBLIC "-//Carnegie Mellon University//DTD Assessment Pool 2.4//EN" "http://oli.web.cmu.edu/dtd/oli_assessment_mathml_2_4.dtd">
   <pool xmlns:cmd="http://oli.web.cmu.edu/content/metadata/2.1/" id="${id}">
     <title>${title}</title>${content}</pool>`
 }
 
-function formative(id, title, questions) {
-  const content = questions
-    .map(q => formativeQuestion(q))
+function formative(id, title, components) {
+  const content = components
+    .map(q => {
+      if (q.type === 'pool') {
+        return selection(q);
+      }
+      return formativeQuestion(q);
+    })
     .reduce((p, c) => p + c, '');
+
   return `<?xml version="1.0" encoding="UTF-8"?>
   <!DOCTYPE assessment PUBLIC "-//Carnegie Mellon University//DTD Inline Assessment MathML 1.4//EN" "http://oli.cmu.edu/dtd/oli_inline_assessment_mathml_1_4.dtd">
   <assessment xmlns:cmd="http://oli.web.cmu.edu/content/metadata/2.1/" id="${id}">
@@ -38,6 +50,13 @@ function hint(h) {
 
 function skillref(s) {
   return `<skillref idref="${s}" />`
+}
+
+function selection(s) {
+  return `<selection count="${s.count}" strategy="${s.strategy}" exhaustion="${s.exhaustion}" scope="${s.scope}">
+    <pool_ref idref="${s.id}"/>
+  </selection>
+  `;
 }
 
 function summativeQuestion(mc) {
