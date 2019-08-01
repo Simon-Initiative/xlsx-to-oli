@@ -2,6 +2,10 @@ const fs = require('fs');
 const readline = require('readline');
 const { google } = require('googleapis');
 const { workbook } = require('./templates');
+var guid = require('./guid').guid;
+const fetchIt = require('node-fetch');
+var JSZip = require("jszip");
+
 
 // If modifying these scopes, delete token.json.
 const SCOPES = ['https://www.googleapis.com/auth/documents.readonly'];
@@ -11,11 +15,11 @@ const SCOPES = ['https://www.googleapis.com/auth/documents.readonly'];
 const TOKEN_PATH = 'token.json';
 
 // Load client secrets from a local file.
-fs.readFile('credentials.json', (err, content) => {
-  if (err) return console.log('Error loading client secret file:', err);
-  // Authorize a client with credentials, then call the Google Docs API.
-  authorize(JSON.parse(content), parsePage);
-});
+//fs.readFile('credentials.json', (err, content) => {
+//  if (err) return console.log('Error loading client secret file:', err);
+// Authorize a client with credentials, then call the Google Docs API.
+//  authorize(JSON.parse(content), parsePage);
+//});
 
 /**
  * Create an OAuth2 client with the given credentials, and then execute the
@@ -79,44 +83,160 @@ function parsePage(auth) {
     documentId: '1URR7Ii4LFQwhHllqYtV3sHaU7tQMeIUzG0iU6qm27Z0',
   }, (err, res) => {
     if (err) return console.log('The API returned an error: ' + err);
-    const docTitle = res.data.title.split(':');
-    const id = docTitle[0].trim();
-    const title = docTitle[1].trim();
 
-    const objectives = '';
-    const { body, bib } = parseBody(res.data);
+    console.log(processPage(res.data).xml);
 
-    console.log(workbook(id, title, objectives, body, ''));
 
   });
+}
+
+function base64_encode(file) {
+  // read binary data
+  var bitmap = fs.readFileSync(file);
+  // convert binary data to base64 encoded string
+  return new Buffer(bitmap).toString('base64');
+}
+
+function processPage(data) {
+
+  const parts = data.title.split(':');
+  const id = data.title.indexOf(':') !== -1 ? parts[0] : guid();
+  const title = data.title.indexOf(':') !== -1 ? parts[1] : data.title;
+  const objectives = '';
+
+  const context = parseBody(id, data);
+  const body = context.lines.reduce((p, c) => p + c + '\n', '')
+  const xml = workbook(id, title, objectives, body, '');
+
+  return new Promise(function (resolve, reject) {
+
+    downloadImages(context.imagesToFetch)
+      .then(images => zip({ name: id + '.xml', content: xml }, images, id + '.zip'))
+      .then(file => resolve({ zip: base64_encode(file) }));
+  });
+
+
+}
+
+function zip(xml, images, output) {
+  return new Promise(function (resolve, reject) {
+    var zip = new JSZip();
+
+    zip.folder('x-oli-workbook_page').file(xml.name, xml.content);
+
+    images.forEach(image => {
+      zip.folder('webcontent').file(image.name, image.content);
+    });
+
+    // zip.file("file", content);
+    // ... and other manipulations
+
+    zip
+      .generateNodeStream({ type: 'nodebuffer', streamFiles: true })
+      .pipe(fs.createWriteStream(output))
+      .on('finish', function () {
+        // JSZip generates a readable stream with a "end" event,
+        // but is piped here in a writable stream which emits a "finish" event.
+
+        resolve(output);
+      });
+  });
+
+}
+
+function retrieveImage(image) {
+
+  return fetchIt(image.href)
+    .then(response => response.arrayBuffer())
+    .then((blob) => {
+      return { name: image.name, content: blob };
+    })
+    .catch((err) => {
+      console.log(err);
+      resolve(false);
+    });
+
+
+}
+
+function downloadImages(images) {
+
+  if (images.length === 0) Promise.resolve([]);
+
+  const fetches = images.map(image => retrieveImage(image));
+  return Promise.all(fetches);
+
 }
 
 function toId(id) {
   return id.replace(/\./g, '-');
 }
 
-function parseBody(data) {
+function extractCustomElementName(t) {
 
-  const context = {
-    lines: [],
-    bib: [],
-    inSection: false,
-    inlines: data.inlineObjects,
-    lists: data.lists,
-    imagesToFetch: [],
-    activeLists: [],
-  };
-
-  data.body.content.forEach(processContent.bind(this, context));
-  if (context.inSection) {
-    context.lines.push('</body></section>');
+  const text = (cell) => {
+    if (cell.content.length === 1 && cell.content[0].paragraph) {
+      const p = cell.content[0].paragraph;
+      if (p.elements.length > 0) {
+        if (p.elements[0].textRun) {
+          return p.elements[0].textRun.content.trim();
+        }
+      }
+    }
+    return null;
   }
 
-  return { body: context.lines.reduce((p, c) => p + c + '\n', ''), bib: context.bib };
+  const row = t.tableRows[0];
+  if (row.tableCells.length > 1) {
+    const first = text(row.tableCells[0]);
+
+    if (first.trim() === 'CustomElement') {
+      return text(row.tableCells[1]);
+    }
+  }
+  return null;
 }
 
-function processStructuredText(context, parentOpening, parentClosing, p) {
-  let line = parentOpening;
+function getKeyValues(table, keys) {
+
+  const k = keys.reduce((p, c) => {
+    if (c.endsWith(':s')) {
+      p[c.substr(0, c.length - 2)] = getStructuredText
+    } else {
+      p[c] = getBasicText;
+    }
+    return p;
+  }, {});
+
+  const o = {};
+
+  table.tableRows.forEach((r, ri) => {
+    const key = getTableText(table, getBasicText, ri, 0);
+    const processor = k[key];
+    if (processor !== undefined) {
+      const value = getTableText(table, processor, ri, 1);
+      o[key] = value;
+    }
+  });
+
+  return o;
+}
+
+
+function getTableText(table, processor, row, col) {
+  if (table.tableRows.length > row) {
+    const r = table.tableRows[row];
+    if (r.tableCells.length > col) {
+      const c = r.tableCells[col];
+      return processor(c);
+
+    }
+  }
+  return null;
+}
+
+function extractParagraph(p) {
+  let line = '';
   p.elements.forEach(e => {
     if (e.textRun !== undefined) {
       const { textStyle } = e.textRun;
@@ -141,6 +261,66 @@ function processStructuredText(context, parentOpening, parentClosing, p) {
       line += '<cite entry="' + toId(e.footnoteReference.footnoteId) + '"/> ';
     }
   });
+  return line;
+}
+
+function toArrayBuffer(buf) {
+  var ab = new ArrayBuffer(buf.length);
+  var view = new Uint8Array(ab);
+  for (var i = 0; i < buf.length; ++i) {
+    view[i] = buf[i];
+  }
+  return ab;
+}
+
+
+function getBasicText(cell) {
+  if (cell.content.length === 1 && cell.content[0].paragraph) {
+    const p = cell.content[0].paragraph;
+    if (p.elements.length > 0) {
+      if (p.elements[0].textRun) {
+        return p.elements[0].textRun.content.trim();
+      }
+    }
+  }
+  return '';
+}
+
+function getStructuredText(cell) {
+  if (cell.content.length === 1 && cell.content[0].paragraph) {
+    const p = cell.content[0].paragraph;
+    if (p.elements.length > 0) {
+      return extractParagraph(p);
+    }
+  }
+  return '';
+}
+
+
+
+function parseBody(id, data) {
+
+  const context = {
+    id,
+    lines: [],
+    bib: [],
+    inSection: false,
+    inlines: data.inlineObjects,
+    lists: data.lists,
+    imagesToFetch: [],
+    activeLists: [],
+  };
+
+  data.body.content.forEach(processContent.bind(this, context));
+  if (context.inSection) {
+    context.lines.push('</body></section>');
+  }
+
+  return context;
+}
+
+function processStructuredText(context, parentOpening, parentClosing, p) {
+  const line = parentOpening + extractParagraph(p);
   context.lines.push(line + parentClosing);
 }
 
@@ -184,6 +364,47 @@ function isImage(c) {
     && c.paragraph.elements[0].inlineObjectElement;
 }
 
+function processFormative(context, t) {
+
+  const params = getKeyValues(t, ['idref', 'purpose']);
+  const purpose = params.purpose
+    ? `purpose="${params.purpose}"`
+    : '';
+  context.lines.push(`<wb:inline idref="${params.idref}" ${purpose}/>`);
+
+}
+
+function processSummative(context, c) {
+  const params = getKeyValues(c, ['idref', 'purpose']);
+  const purpose = params.purpose
+    ? `purpose="${params.purpose}"`
+    : '';
+  context.lines.push(`<activity idref="${params.idref}" ${purpose}/>`);
+}
+
+function attr(name, value) {
+  return value === undefined
+    ? ''
+    : ' ' + name + `="${value}"`;
+}
+
+function processYoutube(context, c) {
+
+  const params = getKeyValues(c, ['id', 'src', 'caption:s', 'height', 'width']);
+  const caption = params.caption
+    ? `<caption>${params.caption}</caption>`
+    : '';
+  const id = attr('id', params.id);
+  const height = attr('height', params.height);
+  const width = attr('width', params.width);
+
+  const youtube = `<youtube${id}${height}${width} src="${params.src}">
+    ${caption}
+  </youtube>
+  `;
+  context.lines.push(youtube);
+}
+
 function processImage(context, c) {
   const id = c.paragraph.elements[0].inlineObjectElement.inlineObjectId;
 
@@ -200,13 +421,15 @@ function processImage(context, c) {
       const href = obj.imageProperties.contentUri;
       const height = Math.round(+obj.size.height.magnitude);
       const width = Math.round(+obj.size.width.magnitude);
-      const name = 'image-' + (Object.keys(context.imagesToFetch).length + 1) + '.png';
+      const name = 'image-' + context.id + '-' + (context.imagesToFetch.length + 1) + '.png';
+      const path = `../webcontent/${name}`;
 
-      context.imagesToFetch[toId(id)] = {
+      context.imagesToFetch.push({
         href,
         name,
-      };
-      context.lines.push(`<image src="../webcontent/${name}" height="${height}" width="${width}"/>`);
+        path,
+      });
+      context.lines.push(`<image src="${path}" height="${height}" width="${width}"/>`);
 
     }
   }
@@ -262,6 +485,7 @@ function processContent(context, c) {
     }
   }
 
+
   if (c.sectionBreak !== undefined) {
 
   } else if (c.paragraph !== undefined && c.paragraph.paragraphStyle.namedStyleType.startsWith('HEADING')) {
@@ -282,7 +506,18 @@ function processContent(context, c) {
     processParagraph(context, c.paragraph);
 
   } else if (c.table !== undefined) {
-    processTable(context, c.table);
+
+    const customElement = extractCustomElementName(c.table);
+    if (customElement === null) {
+      processTable(context, c.table);
+    } else if (customElement === 'formative') {
+      processFormative(context, c.table);
+    } else if (customElement === 'youtube') {
+      processYoutube(context, c.table);
+    } else if (customElement === 'summative') {
+      processSummative(context, c.table);
+    }
+
 
   } else {
     console.log(c);
@@ -312,3 +547,6 @@ function processNested(context, parentOpening, parentClosing, nested) {
 
 }
 
+module.exports = {
+  processPage
+};

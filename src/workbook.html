@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Docs to OLI Workbook</title>
+
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+    integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+
+</head>
+
+<script type="text/javascript">
+
+  var SCOPES = "https://www.googleapis.com/auth/documents.readonly";
+
+  /**
+   *  On load, called to load the auth2 library and API client library.
+   */
+  function handleClientLoad() {
+    gapi.load('client:auth2', function () { document.getElementById('submit').disabled = false });
+  }
+
+  function isFirefox() {
+    return navigator.userAgent.indexOf("Firefox") > 0;
+  }
+
+  /**
+   *  Initializes the API client library and sets up sign-in state
+   *  listeners.
+   */
+  function retrieveDocument() {
+
+    const documentId = document.getElementById('id').value;
+    const API_KEY = document.getElementById('api').value;
+    const CLIENT_ID = document.getElementById('client').value;
+    const DISCOVERY_DOCS = [
+      'https://docs.googleapis.com/$discovery/rest?version=v1&key=' + API_KEY];
+
+    gapi.client.init({
+      apiKey: API_KEY,
+      clientId: CLIENT_ID,
+      discoveryDocs: DISCOVERY_DOCS,
+      scope: SCOPES
+    }).then(function () {
+      return gapi.auth2.getAuthInstance().signIn();
+    }).then(function () {
+      return gapi.client.docs.documents.get({ documentId });
+    }).then(function (response) {
+      var doc = response.result;
+      var title = doc.title;
+
+      var xmlhttp = new XMLHttpRequest();   // new HttpRequest instance 
+      var theUrl = "/workbook";
+      xmlhttp.open("POST", theUrl);
+      xmlhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+      xmlhttp.send(JSON.stringify({ "doc": doc }));
+
+      xmlhttp.onload = function (event) {
+        const result = this.response;
+        var binary = atob(result);
+        var array = new Uint8Array(binary.length);
+        for (var i = 0; i < binary.length; i++) { array[i] = binary.charCodeAt(i) }
+        const blob = new Blob([array], { type: 'application/zip' });
+
+        const url = URL.createObjectURL(blob);
+
+        const downloadLink = document.createElement("a");
+        downloadLink.href = url;
+        downloadLink.download = isFirefox() ? 'workbook.xml' : 'workbook';
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+      }
+
+      console.log('Document "' + title + '" successfully found.\n');
+      gapi.auth2.getAuthInstance().signOut();
+    }, function (response) {
+      console.log('Error: ' + response.result.error.message);
+      gapi.auth2.getAuthInstance().signOut();
+    });
+  }
+
+</script>
+
+<body>
+
+
+  <div class="container">
+    <h2>Google Docs |&gt; OLI Workbook</h2>
+
+    <p>Create an OLI workbook page from a Google Doc</p>
+
+    <ul class="nav nav-tabs" id="myTab" role="tablist">
+      <li class="nav-item">
+        <a class="nav-link active" id="home-tab" data-toggle="tab" href="#form" role="tab" aria-controls="form"
+          aria-selected="true">Convert</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" id="profile-tab" data-toggle="tab" href="#help" role="tab" aria-controls="help"
+          aria-selected="false">Setup Instructions</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" id="source-tab" data-toggle="tab" href="#source" role="tab" aria-controls="source"
+          aria-selected="false">Supported Elements</a>
+      </li>
+
+    </ul>
+
+    <!-- Tab panes -->
+    <div class="tab-content">
+      <div class="tab-pane active" id="form" role="tabpanel" aria-labelledby="form-tab">
+        <div style="margin: 20px">
+
+          <form ref='convert' id='convert'>
+            <div class="form-group">
+              <label for="client">Google Docs Client ID</label>
+              <input type="text" class="form-control" id="client" aria-describedby="clientHelp"
+                placeholder="Enter Google Docs Client Id">
+              <small id="clientHelp" class="form-text text-muted">The student facing title of the assessment.</small>
+            </div>
+            <div class="form-group">
+              <label for="api">Google Docs API Key</label>
+              <input type="text" class="form-control" id="api" aria-describedby="apiHelp"
+                placeholder="Your Google Docs API Key">
+              <small id="apiHelp" class="form-text text-muted">Generate an API key at
+                https://developers.google.com/docs/api/quickstart/js.</small>
+            </div>
+            <div class="form-group">
+              <label for="id">Document ID</label>
+              <input type="text" class="form-control" id="id" aria-describedby="idHelp" placeholder="Unique ID">
+              <small id="idHelp" class="form-text text-muted">This portion of a link:
+                https://docs.google.com/document/d/<b>1URR7Ii4LFQwhHllqYtV3sHaU7tQMeIUzG0iU6qm27Z0</b>/edit</small>
+            </div>
+
+            <button id="submit" disabled="true" type="button" class="btn btn-primary"
+              onclick="retrieveDocument()">Submit</button>
+
+          </form>
+        </div>
+      </div>
+      <div class="tab-pane" id="help" role="tabpanel" aria-labelledby="help-tab">
+        <div style="margin: 20px">
+
+          <ol>
+            <li>Create a Google Doc that contains your desired workbook contents.</li>
+            <li>
+              Create a Google Docs API Key. See <a
+                href="https://developers.google.com/docs/api/quickstart/js">https://developers.google.com/docs/api/quickstart/js</a>
+              for simple instructions to enable the API for use in your browser.
+            </li>
+            <li>
+              After you create your API key, edit the key at <a
+                href="https://console.developers.google.com">https://console.developers.google.com</a>
+              Click the <code>Credentials</code> tab, then click the pencil icon (edit) for the Oath 2.0
+              <code>Web Application</code> client.
+              From the next page, you need to add the entry
+              <code>http://stormwind.oli.cmu.edu:9001</code> to the <code>Authorized JavaScript origins</code>. You will
+              likely
+              be prompted to add <code>cmu.edu</code> to your <code>authorized domains list</code> in
+              order to complete this step.
+              <blockquote>
+                <div class="alert alert-info" role="alert">
+                  This step is optional and only necessary if you want to use this utility
+                  as a hosted solution from <code>stormwind</code>. Alternatively, you can check out this
+                  code and run it locally from your <code>localhost</code>.
+                </div>
+              </blockquote>
+            </li>
+            <li>Paste your client id, API key, and your Google Docs document id
+              into the form below and click <code>Submit</code>. The result will be a
+              <code>zip</code> file containing the workbook xml and any supporting image files.
+            </li>
+
+          </ol>
+
+
+
+        </div>
+      </div>
+      <div class="tab-pane" id="source" role="tabpanel" aria-labelledby="source-tab">
+        <div style="margin: 20px">
+
+          <h4>Supported Elements</h4>
+
+          <ul>
+            <li>Paragraphs</li>
+            <li>Markup including bold and italic</li>
+            <li>Hyperlinks</li>
+            <li>Tables</li>
+            <li>Embedded images</li>
+            <li>Ordered and bulleted lists</li>
+            <li>Nested lists</li>
+          </ul>
+
+          <h4>Custom Element Support</h4>
+
+          <p>This tool supports the importing of non-native Google Docs elements
+            through a <code>CustomElement</code> table that the author
+            of the doc inserts.
+          </p>
+
+          <h5>YouTube Video</h5>
+
+          <table class="table table-bordered table-sm">
+            <tbody>
+              <tr>
+                <td>CustomElement</td>
+                <td>youtube</td>
+              </tr>
+              <tr>
+                <td>src</td>
+                <td><i>the video id</i></td>
+              </tr>
+              <tr>
+                <td>caption</td>
+                <td><i>optional - the video caption</i></td>
+              </tr>
+              <tr>
+                <td>height</td>
+                <td><i>optional - height in pixel</i></td>
+              </tr>
+              <tr>
+                <td>width</td>
+                <td><i>optional - width in pixels</i></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h5>Formative assessment</h5>
+
+          <table class="table table-bordered table-sm">
+            <tbody>
+              <tr>
+                <td>CustomElement</td>
+                <td>formative</td>
+              </tr>
+              <tr>
+                <td>idref</td>
+                <td><i>the resource id of the formative assessment</i></td>
+              </tr>
+            </tbody>
+          </table>
+          <h5>Summative assessment</h5>
+
+          <table class="table table-bordered table-sm">
+            <tbody>
+              <tr>
+                <td>CustomElement</td>
+                <td>summative</td>
+              </tr>
+              <tr>
+                <td>idref</td>
+                <td><i>the resource id of the formative assessment</i></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <p>To see a sample doc that demonstrates how to include custom elements,
+            checkout out: <a
+              href="https://docs.google.com/document/d/1URR7Ii4LFQwhHllqYtV3sHaU7tQMeIUzG0iU6qm27Z0/edit?usp=sharing">https://docs.google.com/document/d/1URR7Ii4LFQwhHllqYtV3sHaU7tQMeIUzG0iU6qm27Z0/edit?usp=sharing</a>.
+          </p>
+        </div>
+      </div>
+
+    </div>
+
+
+
+
+
+    <script async="" defer="" onload="this.onload=function(){};handleClientLoad()"
+      onreadystatechange="if (this.readyState === 'complete') this.onload()"
+      src="https://apis.google.com/js/api.js"></script>
+  </div>
+</body>
+
+
+<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
+  integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
+  integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
+  integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+
+</html>
