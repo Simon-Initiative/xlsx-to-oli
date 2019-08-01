@@ -20,6 +20,11 @@ app.get('/workbook', function (req, res) {
 });
 
 
+app.get('/xlsx', function (req, res) {
+  res.sendFile(path.join(__dirname + '/xlsx.html'));
+});
+
+
 app.post('/workbook', express.json(), function (req, res, next) {
 
   const doc = req.body.doc;
