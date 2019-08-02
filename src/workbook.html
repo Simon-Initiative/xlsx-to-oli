@@ -25,12 +25,22 @@
     return navigator.userAgent.indexOf("Firefox") > 0;
   }
 
+  function hideError() {
+    document.getElementById('errorDisplay').innerHTML = '';
+    document.getElementById('errorDisplay').style.visibility = 'hidden';
+  }
+
+  function showError(e) {
+    document.getElementById('errorDisplay').innerHTML = e;
+    document.getElementById('errorDisplay').style.visibility = 'visible';
+  }
+
   /**
    *  Initializes the API client library and sets up sign-in state
    *  listeners.
    */
   function retrieveDocument() {
-
+    hideError();
     const documentId = document.getElementById('id').value;
     const API_KEY = document.getElementById('api').value;
     const CLIENT_ID = document.getElementById('client').value;
@@ -57,26 +67,37 @@
       xmlhttp.send(JSON.stringify({ "doc": doc }));
 
       xmlhttp.onload = function (event) {
-        const result = this.response;
-        var binary = atob(result);
-        var array = new Uint8Array(binary.length);
-        for (var i = 0; i < binary.length; i++) { array[i] = binary.charCodeAt(i) }
-        const blob = new Blob([array], { type: 'application/zip' });
 
-        const url = URL.createObjectURL(blob);
+        if (this.status === 200) {
+          const result = this.response;
+          var binary = atob(result);
+          var array = new Uint8Array(binary.length);
+          for (var i = 0; i < binary.length; i++) { array[i] = binary.charCodeAt(i) }
+          const blob = new Blob([array], { type: 'application/zip' });
 
-        const downloadLink = document.createElement("a");
-        downloadLink.href = url;
-        downloadLink.download = isFirefox() ? 'workbook.xml' : 'workbook';
-        document.body.appendChild(downloadLink);
-        downloadLink.click();
-        document.body.removeChild(downloadLink);
+          const url = URL.createObjectURL(blob);
+
+          const downloadLink = document.createElement("a");
+          downloadLink.href = url;
+          downloadLink.download = isFirefox() ? 'workbook.xml' : 'workbook';
+          document.body.appendChild(downloadLink);
+          downloadLink.click();
+          document.body.removeChild(downloadLink);
+        } else if (this.status === 500) {
+          showError('API Error: ' + this.response);
+        } else {
+          showError('API Error: ' + this.response);
+        }
+
       }
 
-      console.log('Document "' + title + '" successfully found.\n');
       gapi.auth2.getAuthInstance().signOut();
     }, function (response) {
-      console.log('Error: ' + response.result.error.message);
+      if (response.result) {
+        showError('API Error: ' + response.result.error.message);
+      } else {
+        showError('API Error: ' + JSON.stringify(response));
+      }
       gapi.auth2.getAuthInstance().signOut();
     });
   }
@@ -117,14 +138,15 @@
               <label for="client">Google Docs Client ID</label>
               <input type="text" class="form-control" id="client" aria-describedby="clientHelp"
                 placeholder="Enter Google Docs Client Id">
-              <small id="clientHelp" class="form-text text-muted">The student facing title of the assessment.</small>
+              <small id="clientHelp" class="form-text text-muted">Generate a client id following the <b>Setup
+                  Instructions</b>.</small>
             </div>
             <div class="form-group">
               <label for="api">Google Docs API Key</label>
               <input type="text" class="form-control" id="api" aria-describedby="apiHelp"
                 placeholder="Your Google Docs API Key">
-              <small id="apiHelp" class="form-text text-muted">Generate an API key at
-                https://developers.google.com/docs/api/quickstart/js.</small>
+              <small id="apiHelp" class="form-text text-muted">Generate an API key following the <b>Setup
+                  Instructions</b>.</small>
             </div>
             <div class="form-group">
               <label for="id">Document ID</label>
@@ -137,43 +159,39 @@
               onclick="retrieveDocument()">Submit</button>
 
           </form>
+
+          <div id="errorDisplay" class="alert alert-danger" role="info" style="visibility: hidden;">
+            placeholder
+          </div>
+
         </div>
       </div>
       <div class="tab-pane" id="help" role="tabpanel" aria-labelledby="help-tab">
         <div style="margin: 20px">
 
+
+          <p>Steps to create a Google API key and Client Id:</p>
+
           <ol>
-            <li>Create a Google Doc that contains your desired workbook contents.</li>
-            <li>
-              Create a Google Docs API Key. See <a
-                href="https://developers.google.com/docs/api/quickstart/js">https://developers.google.com/docs/api/quickstart/js</a>
-              for simple instructions to enable the API for use in your browser.
-            </li>
-            <li>
-              After you create your API key, edit the key at <a
-                href="https://console.developers.google.com">https://console.developers.google.com</a>
-              Click the <code>Credentials</code> tab, then click the pencil icon (edit) for the Oath 2.0
-              <code>Web Application</code> client.
-              From the next page, you need to add the entry
-              <code>http://stormwind.oli.cmu.edu:9001</code> to the <code>Authorized JavaScript origins</code>. You will
-              likely
-              be prompted to add <code>cmu.edu</code> to your <code>authorized domains list</code> in
-              order to complete this step.
-              <blockquote>
-                <div class="alert alert-info" role="alert">
-                  This step is optional and only necessary if you want to use this utility
-                  as a hosted solution from <code>stormwind</code>. Alternatively, you can check out this
-                  code and run it locally from your <code>localhost</code>.
-                </div>
-              </blockquote>
-            </li>
-            <li>Paste your client id, API key, and your Google Docs document id
-              into the form below and click <code>Submit</code>. The result will be a
-              <code>zip</code> file containing the workbook xml and any supporting image files.
-            </li>
-
+            <li>Visit <a href="https://console.developers.google.com">https://console.developers.google.com</a></li>
+            <li>Create a new project by clicking on the project dropdown in the upper left hand corner</li>
+            <li>After your project is created, make it the active project by selecting it in the project dropdown.</li>
+            <li>Active the Google Docs API by clicking “Library”, searching for the Google Docs API entry, and clicking
+              “Enable”. </li>
+            <li>Navigate back to your new project page. Click “Credentials"</li>
+            <li>Create an API key using the blue “Create Credentials” button. An unrestricted key is fine, but you can
+              restrict
+              it to the http://stormwind.oli.cmu.edu:9001 origin and only the Google Docs API to feel safer. </li>
+            <li>Create an OAuth 2.0 token from the blue “Create Credentials” button. </li>
+            <li>Click the “Configure consent screen”. On the consent screen configuration enter an application name and
+              add <code>cmu.edu</code> to the list of “Authorized domains”. Do not add any additional scopes. Click
+              “Save”</li>
+            <li>You should now be taken back to the “Create OAuth client ID” screen where you can now choose the
+              application type. Select “Web Application”. More settings will appear. Add to the “Authorized JavaScript
+              origins” the value <code>http://stormwind.oli.cmu.edu:9001</code></li>
+            <li>Click "Create".</li>
+            <li>You should now have both an API key and a Client Id ready to use. </li>
           </ol>
-
 
 
         </div>

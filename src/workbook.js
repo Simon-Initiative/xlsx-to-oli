@@ -111,35 +111,37 @@ function processPage(data) {
   return new Promise(function (resolve, reject) {
 
     downloadImages(context.imagesToFetch)
-      .then(images => zip({ name: id + '.xml', content: xml }, images, id + '.zip'))
-      .then(file => resolve({ zip: base64_encode(file) }));
+      .then(images => zip({ name: id + '.xml', content: xml }, images, id + '.zip', context))
+      .then(file => resolve({ zip: base64_encode(file), errors: context.errors }))
+      .catch(e => reject(e));
   });
 
 
 }
 
-function zip(xml, images, output) {
+function zip(xml, images, output, context) {
   return new Promise(function (resolve, reject) {
-    var zip = new JSZip();
 
-    zip.folder('x-oli-workbook_page').file(xml.name, xml.content);
+    try {
+      var zip = new JSZip();
 
-    images.forEach(image => {
-      zip.folder('webcontent').file(image.name, image.content);
-    });
+      zip.folder('x-oli-workbook_page').file(xml.name, xml.content);
 
-    // zip.file("file", content);
-    // ... and other manipulations
-
-    zip
-      .generateNodeStream({ type: 'nodebuffer', streamFiles: true })
-      .pipe(fs.createWriteStream(output))
-      .on('finish', function () {
-        // JSZip generates a readable stream with a "end" event,
-        // but is piped here in a writable stream which emits a "finish" event.
-
-        resolve(output);
+      images.forEach(image => {
+        zip.folder('webcontent').file(image.name, image.content);
       });
+
+      zip
+        .generateNodeStream({ type: 'nodebuffer', streamFiles: true })
+        .pipe(fs.createWriteStream(output))
+        .on('finish', function () {
+          resolve(output);
+        });
+    } catch (e) {
+      context.errors.push(e);
+      reject(e);
+    }
+
   });
 
 }
@@ -309,11 +311,16 @@ function parseBody(id, data) {
     lists: data.lists,
     imagesToFetch: [],
     activeLists: [],
+    errors: [],
   };
 
-  data.body.content.forEach(processContent.bind(this, context));
-  if (context.inSection) {
-    context.lines.push('</body></section>');
+  try {
+    data.body.content.forEach(processContent.bind(this, context));
+    if (context.inSection) {
+      context.lines.push('</body></section>');
+    }
+  } catch (e) {
+    context.errors.push(e)
   }
 
   return context;

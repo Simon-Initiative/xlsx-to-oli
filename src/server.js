@@ -32,11 +32,18 @@ app.post('/workbook', express.json(), function (req, res, next) {
   processPage(doc)
     .then(result => {
 
-      res.setHeader('Content-type', 'text/plain');
-      res.charset = 'UTF-8';
-      res.send(result.zip);
-    })
+      if (result.errors.length === 0) {
+        res.setHeader('Content-type', 'text/plain');
+        res.charset = 'UTF-8';
+        res.send(result.zip);
+      } else {
+        res.status(500).send(result.errors);
+      }
 
+    })
+    .catch(e => {
+      res.status(500).send(e);
+    });
 
 });
 
