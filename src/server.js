@@ -25,7 +25,7 @@ app.get('/xlsx', function (req, res) {
 });
 
 
-app.post('/workbook', express.json(), function (req, res, next) {
+app.post('/workbook', express.json({ limit: '50mb' }), function (req, res, next) {
 
   const doc = req.body.doc;
 

@@ -40,22 +40,22 @@ function questionHandler(sheet) {
       } else if (k === 'Skill ID') {
         q.skills.push(v);
       } else if (k.startsWith('Choice')) {
+
+        const correctness = sheet['C' + row] !== undefined ? sheet['C' + row].v : 'Incorrect';
         const feedback = sheet['D' + row].v;
         const choice = { content: v, value: guid() };
 
-        if (feedback === 'Correct') {
-          const score = '1';
-          const response = { match: choice.value, score, feedback };
-          q.responses.push(response);
-        }
+        const score = correctness.toLowerCase() === 'correct'
+          ? '1' : '0';
+
+        const response = { match: choice.value, score, feedback };
+        q.responses.push(response);
         q.choices.push(choice);
 
       }
 
       row++;
     }
-
-    q.responses.push({ match: '*', score: '0', feedback: 'Incorrect' });
 
   } catch (e) {
     console.log('error encountered in extracting values: ' + e);
