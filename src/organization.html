@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>XLSX to OLI</title>
+
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+    integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+
+</head>
+
+<script>
+  function isFirefox() {
+    return navigator.userAgent.indexOf("Firefox") > 0;
+  }
+
+  function doSubmit() {
+
+    const formData = new FormData();
+    const id = document.getElementById("id");
+    const idValue = id.value;
+    formData.set("id", id.value)
+    const title = document.getElementById("title");
+    formData.set("title", title.value)
+
+    const fileSelect = document.getElementById("file");
+    if (fileSelect.files && fileSelect.files.length == 1) {
+      const file = fileSelect.files[0]
+      formData.set("file", file, file.name);
+    }
+
+    const request = new XMLHttpRequest();
+
+    request.onload = function (event) {
+      const text = this.response;
+      const blob = new Blob([text], { type: 'text/xml' });
+      const url = URL.createObjectURL(blob);
+
+
+      const downloadLink = document.createElement("a");
+      downloadLink.href = url;
+      downloadLink.download = isFirefox() ? idValue + '.xml' : idValue;
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+    }
+    request.open('POST', "/orgs");
+    request.send(formData);
+  }
+</script>
+
+<body id="body">
+
+  <div class="container">
+    <h2>Excel organizations</h2>
+
+    <small class="text-muted">Create an OLI organization from an Excel workbook</small>
+
+
+    <ul class="nav nav-tabs" id="myTab" role="tablist" style="margin-top: 25px;">
+      <li class="nav-item">
+        <a class="nav-link active" id="home-tab" data-toggle="tab" href="#form" role="tab" aria-controls="form"
+          aria-selected="true">Convert</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" id="profile-tab" data-toggle="tab" href="#help" role="tab" aria-controls="help"
+          aria-selected="false">Documentation</a>
+      </li>
+
+    </ul>
+
+    <!-- Tab panes -->
+    <div class="tab-content">
+      <div class="tab-pane active" id="form" role="tabpanel" aria-labelledby="form-tab">
+        <div style="margin: 20px">
+          <form ref='uploadForm' id='uploadForm' action='/upload' method='post' encType="multipart/form-data">
+            <div class="form-group">
+              <label for="title">Title</label>
+              <input type="text" class="form-control" id="title" aria-describedby="titleHelp" placeholder="Enter title">
+              <small id="titleHelp" class="form-text text-muted">The student facing title of the org.</small>
+            </div>
+            <div class="form-group">
+              <label for="id">ID</label>
+              <input type="text" class="form-control" id="id" aria-describedby="idHelp" placeholder="Unique ID">
+              <small id="idHelp" class="form-text text-muted">Org ID, cannot contain spaces.</small>
+            </div>
+
+            <div class="form-group">
+              <label for="file">Org File</label>
+              <input type="file" class="form-control" id="file" aria-describedby="fileHelp" name="xlsx"
+                placeholder="XLSX File">
+              <small id="fileHelp" class="form-text text-muted">The .xlsx file containing the resource
+                content.</small>
+            </div>
+
+            <button type="button" class="btn btn-primary" onclick="doSubmit()">Submit</button>
+          </form>
+        </div>
+      </div>
+      <div class="tab-pane" id="help" role="tabpanel" aria-labelledby="help-tab">
+        <div style="margin: 20px">
+          <h4>Org creation</h4>
+          <ul>
+            <li>
+              The utility expects to have uploaded to it
+              a Microsoft Excel workbook file in <code>xlsx</code> format.
+            </li>
+            <li>
+              To keep a Google Drive Spreadsheet as your source of truth, simply
+              download the Google spreadsheet as a <code>Microsoft Excel (.xlsx)</code>
+              prior to using this utility.
+            </li>
+            <li>
+              The tool expects the first tab in the workbook to contain
+              the definition of an organization.
+            </li>
+
+          </ul>
+
+          <h4>Organization sheet format</h4>
+
+          <p>The following example illustrates the expected format of a question sheet:</p>
+
+          <table class="table table-bordered table-sm">
+            <tbody>
+              <tr>
+                <td>Sequence</td>
+                <td>sequence-id</td>
+                <td>The Sequence Title</td>
+                <td></td>
+              </tr>
+              <tr>
+                <td>Unit</td>
+                <td>unit-1</td>
+                <td>The First Unit</td>
+                <td></td>
+              </tr>
+              <tr>
+                <td>Module</td>
+                <td>module-id</td>
+                <td>The First Module</td>
+
+                <td></td>
+              </tr>
+              <tr>
+                <td>Item</td>
+                <td>the-item-id</td>
+                <td></td>
+                <td></td>
+              </tr>
+              <tr>
+                <td>Item</td>
+                <td>another-item-id</td>
+                <td></td>
+                <td></td>
+              </tr>
+              <tr>
+                <td>Section</td>
+                <td>section-id</td>
+                <td>The Section Title</td>
+                <td></td>
+              </tr>
+              <tr>
+                <td>Item</td>
+                <td>yet-another-id</td>
+                <td></td>
+                <td></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h5>Notes</h5>
+
+          <ul>
+            <li><code>Sequence</code>, <code>Unit</code>, <code>Module</code>, <code>Section</code> and
+              <code>Item</code> are
+              the available options in column <code>A</code></li>
+            <li>All types must specify an id in column <code>B</code></li>
+            <li>All types except <code>Item</code> must define a title</li>
+          </ul>
+
+        </div>
+      </div>
+    </div>
+
+
+  </div>
+
+</body>
+
+<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
+  integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
+  integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
+  integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+
+</html>

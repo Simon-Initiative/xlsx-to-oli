@@ -20,6 +20,64 @@ function workbook(id, title, objectives, body, bib) {
   </workbook_page>`
 }
 
+
+function organization(id, title, items) {
+
+  const depths = {
+    sequence: 1,
+    unit: 2,
+    module: 3,
+    section: 4,
+    1: 'sequence',
+    2: 'unit',
+    3: 'module',
+    4: 'section',
+  };
+
+  let depth = 0;
+  const contents = [];
+
+  const closeDepth = (current, next) => {
+    contents.push(`</${depths[current]}>`);
+    for (let i = current - 1; i >= next; i--) {
+      contents.push(`</${depths[i]}>`);
+    }
+  };
+
+  items.forEach(i => {
+    const key = i.key.toLowerCase();
+    if (key === 'item') {
+      contents.push(`<item id="${guid()}"><resourceref idref="${i.id}"/></item>\n`);
+    } else {
+      const d = depths[key];
+      if (depth >= d) {
+        closeDepth(depth, d);
+      }
+      depth = d;
+      contents.push(`<${key} id=${i.id}><title>${i.title}</title>\n`);
+    }
+  });
+
+  closeDepth(depth, 1);
+
+  const content = contents.reduce((p, c) => p + c, '');
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+  <!DOCTYPE organization PUBLIC "-//Carnegie Mellon University//DTD Content Organization Simple 2.3//EN" 
+  "http://oli.web.cmu.edu/dtd/oli_content_organization_simple_2_3.dtd">
+  <organization id="${id}" version="1.0">
+  <title>${title}</title>
+  <description>Description</description>
+  <audience>Audience</audience>
+  <labels sequence="Sequence" unit="Unit" module="Module" section="Section" />
+  <sequences>
+  ${content}
+  </sequences>
+  </organization>
+  `
+}
+
+
 function objectives(skills) {
 
   const objectives = skills.map(s => {
@@ -214,4 +272,5 @@ module.exports = {
   workbook,
   objectives,
   skills,
+  organization,
 }
