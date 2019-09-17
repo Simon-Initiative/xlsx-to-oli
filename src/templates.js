@@ -20,6 +20,38 @@ function workbook(id, title, objectives, body, bib) {
   </workbook_page>`
 }
 
+function objectives(skills) {
+
+  const objectives = skills.map(s => {
+    return `<objective id="${s.id}_obj">${s.title}</objective>`;
+  }).reduce((p, c) => p + c, '');
+
+  const refs = skills.map(s => {
+    return `<objective_skills idref="${s.id}_obj"><skillref idref="${s.id}" /></objective_skills>`;
+  }).reduce((p, c) => p + c, '');
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+  <!DOCTYPE objectives PUBLIC "-//Carnegie Mellon University//DTD Learning Objectives 2.0//EN" "http://oli.web.cmu.edu/dtd/oli_learning_objectives_2_0.dtd">
+  <objectives id="learning_objectives"><title>Created In Editor</title>
+  ${objectives}
+  ${refs}
+  </objectives>
+  `
+}
+
+function skills(skills) {
+
+  const s = skills.map(s => {
+    return `<skill id="${s.id}">${s.title}</skill>`;
+  }).reduce((p, c) => p + c, '');
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+  <!DOCTYPE skills PUBLIC "-//Carnegie Mellon University//DTD Skills Model 1.0//EN" "http://oli.cmu.edu/dtd/oli_skills_model_1_0.dtd">
+  <skills id="skills"><title>Created In Editor</title>
+  ${s}
+  </skills>`
+}
+
 function summative(id, title, components) {
   const content = components
     .map(q => {
@@ -179,5 +211,7 @@ module.exports = {
   pool,
   summative,
   formative,
-  workbook
+  workbook,
+  objectives,
+  skills,
 }

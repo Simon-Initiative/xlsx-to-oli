@@ -102,9 +102,13 @@ function processPage(data) {
   const parts = data.title.split(':');
   const id = data.title.indexOf(':') !== -1 ? parts[0] : guid();
   const title = data.title.indexOf(':') !== -1 ? parts[1] : data.title;
-  const objectives = '';
 
   const context = parseBody(id, data);
+  console.log(context.objrefs);
+  const objectives = context.objrefs.length === 0
+    ? ''
+    : context.objrefs.map(o => `<objref>${o}</objref>`).reduce((p, c) => p + c + '\n', '');
+
   const body = context.lines.reduce((p, c) => p + c + '\n', '')
   const xml = workbook(id, title, objectives, body, '');
 
@@ -305,6 +309,7 @@ function parseBody(id, data) {
   const context = {
     id,
     lines: [],
+    objrefs: [],
     bib: [],
     inSection: false,
     inlines: data.inlineObjects,
@@ -387,6 +392,12 @@ function processSummative(context, c) {
     ? `purpose="${params.purpose}"`
     : '';
   context.lines.push(`<activity idref="${params.idref}" ${purpose}/>`);
+}
+
+
+function processObjectives(context, c) {
+  const params = getKeyValues(c, ['ids']);
+  context.objrefs = params.ids.split(',').map(o => o.trim());
 }
 
 function attr(name, value) {
@@ -523,6 +534,8 @@ function processContent(context, c) {
       processYoutube(context, c.table);
     } else if (customElement === 'summative') {
       processSummative(context, c.table);
+    } else if (customElement === 'objectives') {
+      processObjectives(context, c.table);
     }
 
 

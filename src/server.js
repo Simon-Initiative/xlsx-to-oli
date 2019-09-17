@@ -4,6 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const { toOLI } = require('./convert');
 const { processPage } = require('./workbook');
+const { buildSkillsModel } = require('./objectives');
 
 const upload = multer({ storage: multer.memoryStorage() });
 const app = express();
@@ -19,6 +20,9 @@ app.get('/workbook', function (req, res) {
   res.sendFile(path.join(__dirname + '/workbook.html'));
 });
 
+app.get('/skillsmodel', function (req, res) {
+  res.sendFile(path.join(__dirname + '/skills.html'));
+});
 
 app.get('/xlsx', function (req, res) {
   res.sendFile(path.join(__dirname + '/xlsx.html'));
@@ -70,6 +74,30 @@ app.post('/upload', upload.single('file'), function (req, res, next) {
   res.send(content);
 
 });
+
+
+app.post('/skills', upload.single('file'), function (req, res, next) {
+
+  const file = req.file
+  if (!file) {
+    const error = new Error('Please upload a file')
+    error.httpStatusCode = 400
+    return next(error)
+  }
+
+  const xlsx = file.buffer;
+
+  buildSkillsModel(xlsx)
+    .then(result => {
+      res.setHeader('Content-disposition', 'attachment; filename=skills.zip');
+      res.setHeader('Content-type', 'text/plain');
+      res.charset = 'UTF-8';
+      res.send(result.zip);
+    })
+
+
+});
+
 
 app.listen(port, host, () => console.log('xlsx-to-oli listening on port ' + port));
 

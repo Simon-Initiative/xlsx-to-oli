@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>XLSX to OLI</title>
+
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+    integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+
+</head>
+
+<script>
+  function isFirefox() {
+    return navigator.userAgent.indexOf("Firefox") > 0;
+  }
+
+  function doSubmit() {
+
+    const formData = new FormData();
+
+    const fileSelect = document.getElementById("file");
+    if (fileSelect.files && fileSelect.files.length == 1) {
+      const file = fileSelect.files[0]
+      formData.set("file", file, file.name);
+    }
+
+    const request = new XMLHttpRequest();
+
+    request.onload = function (event) {
+
+      const result = this.response;
+      var binary = atob(result);
+      var array = new Uint8Array(binary.length);
+      for (var i = 0; i < binary.length; i++) { array[i] = binary.charCodeAt(i) }
+      const blob = new Blob([array], { type: 'application/zip' });
+
+      const url = URL.createObjectURL(blob);
+      const downloadLink = document.createElement("a");
+      downloadLink.href = url;
+      downloadLink.download = isFirefox() ? 'skills.zip' : 'skills';
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+    }
+    request.open('POST', "/skills");
+    request.send(formData);
+  }
+</script>
+
+<body id="body">
+
+  <div class="container">
+    <h2>Excel Skills Model</h2>
+
+    <small class="text-muted">Create an OLI skills model from XLSX</small>
+
+
+    <ul class="nav nav-tabs" id="myTab" role="tablist" style="margin-top: 25px;">
+      <li class="nav-item">
+        <a class="nav-link active" id="home-tab" data-toggle="tab" href="#form" role="tab" aria-controls="form"
+          aria-selected="true">Convert</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" id="profile-tab" data-toggle="tab" href="#help" role="tab" aria-controls="help"
+          aria-selected="false">Documentation</a>
+      </li>
+
+    </ul>
+
+    <!-- Tab panes -->
+    <div class="tab-content">
+      <div class="tab-pane active" id="form" role="tabpanel" aria-labelledby="form-tab">
+        <div style="margin: 20px">
+          <form ref='uploadForm' id='uploadForm' action='/skills' method='post' encType="multipart/form-data">
+            <div class="form-group">
+              <label for="file">Skills File</label>
+              <input type="file" class="form-control" id="file" aria-describedby="fileHelp" name="xlsx"
+                placeholder="XLSX File">
+              <small id="fileHelp" class="form-text text-muted">The .xlsx file containing the skills definitions.
+              </small>
+            </div>
+
+            <button type="button" class="btn btn-primary" onclick="doSubmit()">Submit</button>
+          </form>
+        </div>
+      </div>
+      <div class="tab-pane" id="help" role="tabpanel" aria-labelledby="help-tab">
+        <div style="margin: 20px">
+          <h4>Skills model creation</h4>
+          <ul>
+            <li>
+              An OLI skills model consists of a definition of learning objectives and a mapping to
+              corresponding, more-granular, skills.
+            </li>
+            <li>
+              The utility expects to have uploaded to it
+              a Microsoft Excel workbook file in <code>xlsx</code> format and will produce a zip file
+              containing both a learning objectives XML file and a skills XML file.
+            </li>
+            <li>
+              This utility expects the first tab in the sheet to contain the definition of
+              the course's skills.
+            </li>
+            <li>
+              Column <code>A</code> should define the skill id, and column <code>B</code> defines
+              the title of the skill.
+            </li>
+
+
+          </ul>
+
+          <h4>Skill sheet format</h4>
+
+          <p>The following example illustrates the expected format of the skills sheet:</p>
+
+          <table class="table table-bordered table-sm">
+            <tbody>
+              <tr>
+                <td>my-first-skill-id</td>
+                <td>This is the text of the first skill</td>
+
+              </tr>
+              <tr>
+                <td>my-second-skill-id</td>
+                <td>This is the text of the second skill</td>
+
+              </tr>
+              <tr>
+                <td>my-third-skill-id</td>
+                <td>This is the text of the third skill</td>
+
+              </tr>
+
+            </tbody>
+          </table>
+
+          <h5>Notes</h5>
+
+          <ul>
+            <li>This utility will create a parent learning objective for each defined skill</li>
+          </ul>
+
+        </div>
+      </div>
+    </div>
+
+
+  </div>
+
+</body>
+
+<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
+  integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
+  integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
+  integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+
+</html>
