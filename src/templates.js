@@ -1,4 +1,5 @@
 var guid = require('./guid').guid;
+const { encodeXml } = require('./utils');
 
 function workbook(id, title, objectives, body, bib) {
   return `<?xml version="1.0" encoding="UTF-8"?>
@@ -10,7 +11,7 @@ function workbook(id, title, objectives, body, bib) {
     xmlns:theme="http://oli.web.cmu.edu/presentation/" 
     xmlns:wb="http://oli.web.cmu.edu/activity/workbook/" id="${id}">
     <head>
-      <title>${title}</title>
+      <title>${encodeXml(title)}</title>
       ${objectives}
     </head>
     <body>
@@ -54,7 +55,7 @@ function organization(id, title, items) {
         closeDepth(depth, d);
       }
       depth = d;
-      contents.push(`<${key} id=${i.id}><title>${i.title}</title>\n`);
+      contents.push(`<${key} id=${i.id}><title>${encodeXml(i.title)}</title>\n`);
     }
   });
 
@@ -66,7 +67,7 @@ function organization(id, title, items) {
   <!DOCTYPE organization PUBLIC "-//Carnegie Mellon University//DTD Content Organization Simple 2.3//EN" 
   "http://oli.web.cmu.edu/dtd/oli_content_organization_simple_2_3.dtd">
   <organization id="${id}" version="1.0">
-  <title>${title}</title>
+  <title>${encodeXml(title)}</title>
   <description>Description</description>
   <audience>Audience</audience>
   <labels sequence="Sequence" unit="Unit" module="Module" section="Section" />
@@ -81,7 +82,7 @@ function organization(id, title, items) {
 function objectives(skills) {
 
   const objectives = skills.map(s => {
-    return `<objective id="${s.id}_obj">${s.title}</objective>`;
+    return `<objective id="${s.id}_obj">${encodeXml(s.title)}</objective>`;
   }).reduce((p, c) => p + c, '');
 
   const refs = skills.map(s => {
@@ -100,7 +101,7 @@ function objectives(skills) {
 function skills(skills) {
 
   const s = skills.map(s => {
-    return `<skill id="${s.id}">${s.title}</skill>`;
+    return `<skill id="${s.id}">${encodeXml(s.title)}</skill>`;
   }).reduce((p, c) => p + c, '');
 
   return `<?xml version="1.0" encoding="UTF-8"?>
@@ -123,7 +124,7 @@ function summative(id, title, components) {
   return `<?xml version="1.0" encoding="UTF-8"?>
   <!DOCTYPE assessment PUBLIC "-//Carnegie Mellon University//DTD Assessment MathML 2.4//EN" "http://oli.web.cmu.edu/dtd/oli_assessment_mathml_2_4.dtd">
   <assessment xmlns:cmd="http://oli.web.cmu.edu/content/metadata/2.1/" id="${id}" recommended_attempts="3" max_attempts="3">
-    <title>${title}</title>${content}</assessment>`
+    <title>${encodeXml(title)}</title>${content}</assessment>`
 }
 
 function pool(id, title, components) {
@@ -134,7 +135,7 @@ function pool(id, title, components) {
   return `<?xml version="1.0" encoding="UTF-8"?>
   <!DOCTYPE pool PUBLIC "-//Carnegie Mellon University//DTD Assessment Pool 2.4//EN" "http://oli.web.cmu.edu/dtd/oli_assessment_mathml_2_4.dtd">
   <pool xmlns:cmd="http://oli.web.cmu.edu/content/metadata/2.1/" id="${id}">
-    <title>${title}</title>${content}</pool>`
+    <title>${encodeXml(title)}</title>${content}</pool>`
 }
 
 function formative(id, title, components) {
@@ -150,12 +151,12 @@ function formative(id, title, components) {
   return `<?xml version="1.0" encoding="UTF-8"?>
   <!DOCTYPE assessment PUBLIC "-//Carnegie Mellon University//DTD Inline Assessment MathML 1.4//EN" "http://oli.cmu.edu/dtd/oli_inline_assessment_mathml_1_4.dtd">
   <assessment xmlns:cmd="http://oli.web.cmu.edu/content/metadata/2.1/" id="${id}">
-    <title>${title}</title>${content}</assessment>`
+    <title>${encodeXml(title)}</title>${content}</assessment>`
 }
 
 
 function hint(h) {
-  return `<hint>${h}</hint>`;
+  return `<hint>${encodeXml(h)}</hint>`;
 }
 
 function skillref(s) {
@@ -175,7 +176,7 @@ function summativeQuestion(mc) {
   const partId = guid();
 
   const choice = (c) => {
-    return `<choice value="${c.value}">${c.content}</choice>\n`;
+    return `<choice value="${c.value}">${encodeXml(c.content)}</choice>\n`;
   }
 
   const choices = mc.choices
@@ -204,7 +205,7 @@ function summativeQuestion(mc) {
 
   return `<multiple_choice id="${mc.id}" grading="automatic" select="single">
       <body>
-        ${mc.body}
+        ${encodeXml(mc.body)}
       </body>
       <input shuffle="true" id="${inputId}" labels="false">
         ${choices}
@@ -223,7 +224,7 @@ function formativeQuestion(mc) {
   const partId = guid();
 
   const choice = (c) => {
-    return `<choice value="${c.value}">${c.content}</choice>\n`;
+    return `<choice value="${c.value}">${encodeXml(c.content)}</choice>\n`;
   }
 
   const choices = mc.choices
@@ -241,7 +242,7 @@ function formativeQuestion(mc) {
   const response = (r) => {
     return `<response match="${r.match}" score="${r.score}">
               <feedback>
-                  ${r.feedback}
+                  ${encodeXml(r.feedback)}
               </feedback>
           </response>`;
   }
@@ -252,7 +253,7 @@ function formativeQuestion(mc) {
 
   return `<question id="${mc.id}">
       <body>
-        ${mc.body}
+        ${encodeXml(mc.body)}
       </body>
       <multiple_choice shuffle="true" id="${inputId}" select="single">
         ${choices}

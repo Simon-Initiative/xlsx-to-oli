@@ -1,6 +1,7 @@
 const fs = require('fs');
 const readline = require('readline');
 const { google } = require('googleapis');
+const { encodeXml } = require('./utils');
 const { workbook } = require('./templates');
 var guid = require('./guid').guid;
 const fetchIt = require('node-fetch');
@@ -251,16 +252,21 @@ function extractParagraph(p) {
       if (content.endsWith('\n')) {
         content = content.substr(0, content.length - 1);
       }
+
       if (textStyle.link) {
         content = '<a href="' + textStyle.link.url + '">' + content + '</a>';
-      }
-      if (textStyle.bold) {
-        content = '<em style="bold">' + content + '</em>';
-      }
-      if (textStyle.italic) {
-        content = '<em style="italic">' + content + '</em>';
-      }
+      } else {
 
+        content = encodeXml(content);
+
+        if (textStyle.bold) {
+          content = '<em style="bold">' + content + '</em>';
+        }
+        if (textStyle.italic) {
+          content = '<em style="italic">' + content + '</em>';
+        }
+      }
+      
       line += content;
 
     } else if (e.footnoteReference !== undefined) {
@@ -285,7 +291,7 @@ function getBasicText(cell) {
     const p = cell.content[0].paragraph;
     if (p.elements.length > 0) {
       if (p.elements[0].textRun) {
-        return p.elements[0].textRun.content.trim();
+        return encodeXml(p.elements[0].textRun.content.trim());
       }
     }
   }
