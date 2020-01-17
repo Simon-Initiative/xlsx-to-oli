@@ -529,6 +529,9 @@ function processContent(context, c) {
   } else if (c.paragraph !== undefined && c.paragraph.paragraphStyle.namedStyleType === 'NORMAL_TEXT') {
     processParagraph(context, c.paragraph);
 
+  } else if (c.paragraph !== undefined && c.paragraph.paragraphStyle.namedStyleType === 'SUBTITLE') {
+    processParagraph(context, c.paragraph);
+
   } else if (c.table !== undefined) {
 
     const customElement = extractCustomElementName(c.table);
