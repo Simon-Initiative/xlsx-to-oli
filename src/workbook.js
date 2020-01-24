@@ -1,7 +1,7 @@
 const fs = require('fs');
 const readline = require('readline');
 const { google } = require('googleapis');
-const { encodeXml } = require('./utils');
+const { encodeXml, checkImageTag } = require('./utils');
 const { workbook } = require('./templates');
 var guid = require('./guid').guid;
 const fetchIt = require('node-fetch');
@@ -530,7 +530,14 @@ function processContent(context, c) {
     processParagraph(context, c.paragraph);
 
   } else if (c.paragraph !== undefined && c.paragraph.paragraphStyle.namedStyleType === 'SUBTITLE') {
+    let currentIdx = context.lines.length;
+    let s = context.lines[currentIdx-1];
     processParagraph(context, c.paragraph);
+    if (checkImageTag(s)) {
+      // modify the last line, which is an image tag to add alt text
+      // assume alt text only span 1 line
+      context.lines[currentIdx-1] = s.substring(0, s.indexOf('>')) + "alt=\"" + context.lines[currentIdx] + "\">";
+    }
 
   } else if (c.table !== undefined) {
 
