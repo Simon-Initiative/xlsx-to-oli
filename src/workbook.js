@@ -536,7 +536,8 @@ function processContent(context, c) {
     if (checkImageTag(s)) {
       // modify the last line, which is an image tag to add alt text
       // assume alt text only span 1 line
-      context.lines[currentIdx-1] = s.substring(0, s.indexOf('>')) + "alt=\"" + context.lines[currentIdx] + "\">";
+      let new_s = context.lines[currentIdx];
+      context.lines[currentIdx-1] = s.substring(0, s.indexOf('/>')) + "alt=\"" + new_s.substring(new_s.indexOf('>') + 1, new_s.indexOf('</p>')) + "\"/>";
     }
 
   } else if (c.table !== undefined) {
