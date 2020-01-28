@@ -12,9 +12,9 @@ function workbook(id, title, objectives, body, bib) {
     xmlns:wb="http://oli.web.cmu.edu/activity/workbook/" id="${id}">
     <head>
       <title>${encodeXml(title)}</title>
-      ${objectives}
-    </head>
+      </head>
     <body>
+      ${objectives}
       ${body}
     </body>
     ${bib}

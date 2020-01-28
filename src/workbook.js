@@ -108,7 +108,7 @@ function processPage(data) {
   console.log(context.objrefs);
   const objectives = context.objrefs.length === 0
     ? ''
-    : context.objrefs.map(o => `<objref>${o}</objref>`).reduce((p, c) => p + c + '\n', '');
+    : context.objrefs.map(o => `<objref idref="${o}" />`).reduce((p, c) => p + c + '\n', '');
 
   const body = context.lines.reduce((p, c) => p + c + '\n', '')
   const xml = workbook(id, title, objectives, body, '');
