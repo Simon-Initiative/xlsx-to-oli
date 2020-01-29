@@ -537,7 +537,7 @@ function processContent(context, c) {
       // modify the last line, which is an image tag to add alt text
       // assume alt text only span 1 line
       let new_s = context.lines[currentIdx];
-      context.lines[currentIdx-1] = s.substring(0, s.indexOf('/>')) + " alt=\"" + new_s.substring(new_s.indexOf('>') + 1, new_s.indexOf('</p>')) + "\"/>";
+      context.lines[currentIdx-1] = s.substring(0, s.indexOf('/>')) + ' alt=\"' + new_s.substring(new_s.indexOf('>') + 1, new_s.indexOf('</p>')) + ' \"/>';
     }
 
   } else if (c.table !== undefined) {
