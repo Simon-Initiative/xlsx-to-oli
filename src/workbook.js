@@ -1,7 +1,7 @@
 const fs = require('fs');
 const readline = require('readline');
 const { google } = require('googleapis');
-const { encodeXml } = require('./utils');
+const { encodeXml, checkImageTag } = require('./utils');
 const { workbook } = require('./templates');
 var guid = require('./guid').guid;
 const fetchIt = require('node-fetch');
@@ -108,7 +108,7 @@ function processPage(data) {
   console.log(context.objrefs);
   const objectives = context.objrefs.length === 0
     ? ''
-    : context.objrefs.map(o => `<objref>${o}</objref>`).reduce((p, c) => p + c + '\n', '');
+    : context.objrefs.map(o => `<objref idref="${o}" />`).reduce((p, c) => p + c + '\n', '');
 
   const body = context.lines.reduce((p, c) => p + c + '\n', '')
   const xml = workbook(id, title, objectives, body, '');
@@ -528,6 +528,17 @@ function processContent(context, c) {
 
   } else if (c.paragraph !== undefined && c.paragraph.paragraphStyle.namedStyleType === 'NORMAL_TEXT') {
     processParagraph(context, c.paragraph);
+
+  } else if (c.paragraph !== undefined && c.paragraph.paragraphStyle.namedStyleType === 'SUBTITLE') {
+    let currentIdx = context.lines.length;
+    let s = context.lines[currentIdx-1];
+    processParagraph(context, c.paragraph);
+    if (checkImageTag(s)) {
+      // modify the last line, which is an image tag to add alt text
+      // assume alt text only span 1 line
+      let new_s = context.lines[currentIdx];
+      context.lines[currentIdx-1] = `${s.substring(0, s.indexOf('/>'))} alt="${new_s.substring(new_s.indexOf('>') + 1, new_s.indexOf('</p>'))}" />`;
+    }
 
   } else if (c.table !== undefined) {
 
